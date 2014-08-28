@@ -4,8 +4,6 @@
 # Author: Yi Zhang   #
 # Date: AUG/27/2014  #
 # ################## #
-library(reshape2)
-library(plyr)
 
 # ################# #
 # Environment       #
