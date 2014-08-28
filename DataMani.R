@@ -16,8 +16,8 @@ repo$data             <- paste(repo$root, "/data/", sep = "")
 repo$results          <- paste(repo$root, "/results/", sep = "")
 config                <- list()
 config$data_util_rate <- c("dev" = .01, "prod" = 1)
-
-RRUN_TYPE   <- "dev"
+# Rscript: excution type "dev":development or "prod": production
+RRUN_TYPE   <- commandArgs(trailingOnly=TRUE)
 RDEP_LENGTH <- 120
 # ######################### #
 # Functions Definition ----
@@ -53,8 +53,8 @@ ts2mtx <- function(ts, dep_length =10, col_name_prefix = "ts", progress.bar = FA
 # ##################### #
 # Load data -----------
 # ##################### #
-print(paste("START_TIME: ", Sys.time(), "\n",sep=""))
-print("Loading data...\n")
+print(paste("**START_TIME: ", Sys.time(), "\n",sep=""))
+print("**Loading data...\n")
 X <- read.csv(file=paste(repo$data, "x.txt", sep=""), header=F, sep=" ")
 Y <- read.csv(file=paste(repo$data, "y.txt", sep=""), header=F, sep=" ")
 if(nrow(X) > 0) print("X had been load successfully...")
@@ -66,14 +66,19 @@ colnames(Y) <- c("trade_price")
 # ##################### #
 # Data Processing ------ 
 # ##################### #
+# Data Transformation:
 # 1. eliminate the time dependency by retraining difference (t_n+1 - t_n)
 # 2. assume influential variables, y_n+1 = f(x(1)_n,...x(1)_n-k+1, ...)
+# 3. trade_price is encode as 1 for increase, 0 for non-increase
+
 temp           <- list()
 temp$obs_idx   <- seq(from=1, to=floor(nrow(X) * config$data_util_rate[RRUN_TYPE]) )
 temp$save_nobs <- 1:length(temp$obs_idx)
 # trade_price
-print("Processing trade_price as Y ... \n")
-temp$y    <- getDiff(x=Y$trade_price[temp$obs_idx])
+print("** Processing trade_price as Y ... \n")
+temp$y              <- getDiff(x=Y$trade_price[temp$obs_idx])
+temp$y[temp$y >  0] <- 1
+temp$y[temp$y <= 0] <- 0
 temp$data <- ts2mtx(ts = temp$y, 
                     dep_length=RDEP_LENGTH + 1, 
                     col_name_prefix="trade_price_y")
@@ -84,7 +89,7 @@ print("TRADE_PRICE_Y_MTX.csv had been saved as result of success transformation!
 temp$data_size <- c()
 temp$save_nobs <- 1:nrow(temp$data)
 
-print("Processing trade_price as X ... \n")
+print("** Processing trade_price as X ... \n")
 temp$y    <- getDiff(x=Y$trade_price[temp$obs_idx])
 temp$data <- ts2mtx(ts = temp$y, 
                     dep_length=RDEP_LENGTH, 
@@ -96,7 +101,7 @@ print("TRADE_PRICE_X_MTX.csv had been saved as result of success transformation!
 temp$data_size <- c()
 
 # trade_size
-print("Processing trade_size in X ... \n")
+print("** Processing trade_size in X ... \n")
 temp$data <- ts2mtx(ts = getDiff(x=X$trade_size[temp$obs_idx]), 
                     dep_length=RDEP_LENGTH, 
                     col_name_prefix="trade_size")
@@ -107,7 +112,7 @@ print("TRADE_SIZE_MTX.csv had been saved as result of success transformation!\n"
 temp$data_size <- c()
 
 # bid_price
-print("Processing trade_size in X ... \n")
+print("** Processing trade_size in X ... \n")
 temp$data <- ts2mtx(ts = getDiff(x=X$bid_price[temp$obs_idx]), 
                     dep_length=RDEP_LENGTH, 
                     col_name_prefix="bid_price")
@@ -118,7 +123,7 @@ print("BID_PRICE_MTX.csv had been saved as result of success transformation!\n")
 temp$data_size <- c()
 
 # ask_price
-print("Processing trade_size in X ... \n")
+print("** Processing trade_size in X ... \n")
 temp$data <- ts2mtx(ts = getDiff(x=X$ask_price[temp$obs_idx]), 
                     dep_length=RDEP_LENGTH, 
                     col_name_prefix="ask_price")
@@ -129,7 +134,7 @@ print("ASK_PRICE_MTX.csv had been saved as result of success transformation!\n")
 temp$data_size <- c()
 
 # bid_size
-print("Processing trade_size in X ... \n")
+print("** Processing trade_size in X ... \n")
 temp$data <- ts2mtx(ts = getDiff(x=X$bid_size[temp$obs_idx]), 
                     dep_length=RDEP_LENGTH, 
                     col_name_prefix="bid_size")
@@ -140,7 +145,7 @@ print("BID_SIZE_MTX.csv had been saved as result of success transformation!\n")
 temp$data_size <- c()
 
 # ask_size
-print("Processing trade_size in X ... \n")
+print("** Processing trade_size in X ... \n")
 temp$data <- ts2mtx(ts = getDiff(x=X$ask_size[temp$obs_idx]), 
                     dep_length=RDEP_LENGTH, 
                     col_name_prefix="ask_size")
@@ -149,4 +154,4 @@ write.table(x=temp$data[temp$save_nobs, ],
             col.names = TRUE, row.names = FALSE, sep = ",")
 print("ASK_SIZE_MTX.csv had been saved as result of success transformation!\n")
 temp$data_size <- c()
-print(paste("END_TIME: ", Sys.time(), "\n",sep=""))
+print(paste("**END_TIME: ", Sys.time(), "\n",sep=""))
